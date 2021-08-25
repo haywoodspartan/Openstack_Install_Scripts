@@ -3,7 +3,7 @@
 #
 # OpenStack Barebones provisioning Script
 #
-# Written by Stephen Hawking @ Awakened Network LLP
+# Written by Stephen Hawking (Haywoodspartan#0001) @ Awakened Network LLP
 #
 # Uh oh Retard Alert
 VERSION='0.01'
@@ -113,6 +113,11 @@ _echo_nol()
 if [[ $EUID -ne 0 ]]; then
    echo "This script must be run as root" 1>&2
    exit 1
+fi
+#Check for FIPS Mode Enabled
+if sysctl crypto.fips_enabled -ne 0; then
+	echo "Please enable FIPS Mode Cryptology as root" 0>&1
+	exit 1
 fi
 if [ -n "${1}" -a -z "${2}" ]; then
     # Setup root password
