@@ -3,7 +3,7 @@
 #
 # OpenStack Barebones provisioning Script
 #
-# Written by Stephen Hawking (Haywoodspartan#0001) @ Awakened Network LLP
+# Written by Stephen Hawking (Haywoodspartan#0001) @ Awakened Network LLP test
 #
 # Uh oh Retard Alert
 VERSION='0.01'
@@ -34,7 +34,7 @@ show_disclaimer()
 {
 		cat <<EOF
 Disclaimer:
-This tool is very unstable in it's current state and it will not reflect all configuration for the Hardware that it is used on. However this tool is modifiable from top to bottom including the names and commands used to the passwords that are set for the 
+This tool is very unstable in it's current state and it will not reflect all configuration for the Hardware that it is used on. However this tool is modifiable from top to bottom including the names and commands used to the passwords that are set for the
 Openstack Admin-Openrc file that is used to initiate openstack administrative commands via the keystone system.
 
 Please feel free to look over the code and improve on it as you see fit and do pull requests on the github page you found this on and I will credit you as someone who has worked on it.
