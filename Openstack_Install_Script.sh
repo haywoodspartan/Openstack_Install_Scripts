@@ -3,9 +3,9 @@
 #
 # OpenStack Barebones provisioning Script
 #
-# Written by Stephen Hawking (Haywoodspartan#0001) @ Awakened Network LLP test
+# Written by Stephen Hawking (Haywoodspartan#0001) @ Awakened Network LLP
 #
-# Uh oh Retard Alert
+# Uh oh Retard Alert my first full blown Linux Bash Script only for RHEL and CENTOS/FEDORA
 VERSION='0.01'
 
 trap 'exit_cleanup' EXIT
@@ -119,6 +119,7 @@ if sysctl crypto.fips_enabled -ne 0; then
 	echo "Please enable FIPS Mode Cryptology as root" 0>&1
 	exit 1
 fi
+#Call for the Change of Mariadb Root Password
 if [ -n "${1}" -a -z "${2}" ]; then
     # Setup root password
     CURRENT_MYSQL_PASSWORD=''
@@ -278,6 +279,27 @@ sed -i 's/#ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster"/ETCD_INITIAL_CLUSTER_TOKEN=
 sed -i 's/#ETCD_INITIAL_CLUSTER_STATE="new"/ETCD_INITIAL_CLUSTER_STATE="new"/g' /etc/etcd/etcd.conf
 systemctl enable etcd.service
 systemctl start etcd.service
+
+echo "[Starting Task 5: Setting up OpenStack Keystone and Provisioning Endpoints]"
+sed -i 's/#connection = <None>/connection = mysql+pymysql://keystone:jmFKDIV1oTZljiimkGvSDySwzcs4xD2FdurwJztWP7QYW94xyVMbAhNwEKZQGQhr@10.24.1.2/keystone = /g' /etc/keystone/keystone.conf
+sed -i 's/#provider = fernet/provider = fernet/g' /etc/keystone/keystone.conf
+
+echo "...Populating Keystone Database..."
+su -s /bin/sh -c "keystone-manage db_sync" keystone
+
+keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone
+keystone-manage credential_setup --keystone-user keystone --keystone-group keystone
+
+keystone-manage bootstrap --bootstrap-password ADMIN_PASS \
+--bootstrap-admin-url http://10.24.1.2:5000/v3/ \
+--bootstrap-internal-url http://10.24.1.2:5000/v3/ \
+--bootstrap-public-url http://10.24.1.2:5000/v3/ \
+--bootstrap-region-id Home
+
+sed -i 's/#ServerName www.example.com:80/ServerName 10.24.1.2/g' /etc/httpd/conf/httpd.conf
+ln -s /usr/share/keystone/wsgi-keystone.conf /etc/httpd/conf.d/
+systemctl enable httpd.service
+systemctl start httpd.service
 
 echo "... Creating admin-openrc file at /root/..."
 cat >~/admin-openrc <<EOL
