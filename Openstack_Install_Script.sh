@@ -6,7 +6,7 @@
 # Written by Stephen Hawking (Haywoodspartan#0001) @ Awakened Network LLP
 #
 # Uh oh Retard Alert my first full blown Linux Bash Script only for RHEL and CENTOS/FEDORA
-VERSION='0.01'
+VERSION='0.11'
 
 trap 'exit_cleanup' EXIT
 trap '_warn "interrupted, cleaning up..."; exit_cleanup; exit 1' INT
