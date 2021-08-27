@@ -316,7 +316,6 @@ openstack project create --domain default \
   --description "Service Project" service
 
 echo "[Starting Task 6: Setting up OpenStack Glance Imaging Service]"
-sed -i 's|#connection = <None>|connection = mysql+pymysql://glance:0DCv0Y0JqNPwd0ZRsmmIP77Txt0a7BM3B402w0TQs68CqXEseeFvXqVVyVYPmtIU@10.24.1.2/glance|g' /etc/glance/glance-api.conf
 	CreateGlance=$(expect -c "
 	set timeout 3
 	spawn openstack user create --domain default --password-prompt glance
@@ -336,3 +335,76 @@ sed -i 's|#connection = <None>|connection = mysql+pymysql://glance:0DCv0Y0JqNPwd
 	spawn openstack endpoint create --region Home image admin http://10.24.1.2:9292
 	expect eof
 	")
+	#
+	#Execute Create Glance
+	#
+	echo "${CreateGlance}"
+sed -i 's|#connection = <None>|connection = mysql+pymysql://glance:0DCv0Y0JqNPwd0ZRsmmIP77Txt0a7BM3B402w0TQs68CqXEseeFvXqVVyVYPmtIU@10.24.1.2/glance|g' /etc/glance/glance-api.conf
+cat <<EOT >> /etc/glance/glance.conf
+[keystone_authtoken]
+www_authenticate_uri  = http://10.24.1.2:5000
+auth_url = http://10.24.1.2:5000
+memcached_servers = 10.24.1.2:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = glance
+password = 2WFWkIdOxwMVPjuOaav9tigSEJUpVb5IZ2WdZ45uuahrHJY3SS5xX4gfi3EZFSRs
+[paste_deploy]
+flavor = keystone
+[glance_store]
+stores = file,http
+default_store = file
+filesystem_store_datadir = /var/lib/glance/images/
+EOT
+
+su -s /bin/sh -c "glance-manage db_sync" glance
+systemctl enable openstack-glance-api.service
+systemctl start  openstack-glance-api.service
+
+echo "[Starting Task 7: Setting up OpenStack Placement API Service]"
+CreatePlacement=$(expect -c "
+set timeout 3
+spawn openstack user create --domain default --password-prompt glance
+expect \"User Password:\"
+send \"740EMvnrkkNmLGIi2KyR0WaRoM9ftbfnBuS9IGLewOdnFQktBxdhEzuFfvm6oEtD\r\"
+expect \"Repeat User Password:\r\"
+send \"740EMvnrkkNmLGIi2KyR0WaRoM9ftbfnBuS9IGLewOdnFQktBxdhEzuFfvm6oEtD\r\"
+set timeout 7
+spawn openstack role add --project service --user placement admin
+set timeout 5
+spawn openstack service create --name placement --description "Placement API" placement
+set timeout 5
+spawn openstack endpoint create --region Home placement public http://10.24.1.2:8778
+set timeout 5
+spawn openstack endpoint create --region Home placement internal http://10.24.1.2:8778
+set timeout 5
+spawn openstack endpoint create --region Home placemnt admin http://10.24.1.2:8778
+expect eof
+")
+#
+#Execute Create Glance
+#
+echo "${CreatePlacement}"
+sed -i 's|#connection = <None>|connection = mysql+pymysql://placement:tTlFAXHcYSJmIdNhkwIez7W8cJcdErBty548VUhBqrdhaf3gKO4k7l01fny3bH3y@10.24.1.2/placement|g' /etc/placement/placement.conf
+cat <<EOT >> /etc/placement/placement.conf
+[api]
+auth_strategy = keystone
+
+[keystone_authtoken]
+auth_url = http://10.24.1.2:5000/v3
+memcached_servers = 10.24.1.2:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = placement
+password = 740EMvnrkkNmLGIi2KyR0WaRoM9ftbfnBuS9IGLewOdnFQktBxdhEzuFfvm6oEtD
+EOT
+su -s /bin/sh -c "placement-manage db sync" placement
+systemctl restart httpd
+placement-status upgrade check
+pip3 install osc-placement -y
+openstack --os-placement-api-version 1.2 resource class list --sort-column name
+openstack --os-placement-api-version 1.6 trait list --sort-column name
