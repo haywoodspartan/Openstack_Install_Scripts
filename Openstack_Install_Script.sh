@@ -259,30 +259,30 @@ systemctl enable rabbitmq-server.service
 systemctl start rabbitmq-server.service
 rabbitmqctl add_user openstack W40LFZa5ko6IiJ3KFHkAmLegBy8bY3O29xAvc0xpEQt2AbmlVYAce7m8DtRVQTh8
 rabbitmqctl set_permissions openstack ".*" ".*" ".*"
-sed -i 's/# vm_memory_high_watermark.absolute = 2GB/vm_memory_high_watermark = 768M/g' /etc/rabbitmq/rabbitmq.conf
+sed -i 's|# vm_memory_high_watermark.absolute = 2GB|vm_memory_high_watermark = 768M|g' /etc/rabbitmq/rabbitmq.conf
 more /etc/rabbitmq/rabbitmq.conf
 systemctl restart rabbitmq-server.service
 
 echo "[Starting Task 4.2: Setting up Memcached Service]"
-sed -i 's/OPTIONS="-l 127.0.0.1,::1"/OPTIONS="-l 127.0.0.1,::1,10.24.1.3s,"/g' /etc/sysconfig/memcached
+sed -i 's|OPTIONS="-l 127.0.0.1,::1"|OPTIONS="-l 127.0.0.1,::1,10.24.1.3s,"|g' /etc/sysconfig/memcached
 systemctl enable memcached.service
 systemctl start memcached.service
 
 echo "[Starting Task 4.3: Setting up Etcd System]"
-sed -i 's/#ETCD_LISTEN_PEER_URLS="http://localhost:2380"/ETCD_LISTEN_PEER_URLS="http://10.24.1.3:2380"/g' /etc/etcd/etcd.conf
-sed -i 's/ETCD_LISTEN_CLIENT_URLS="http://localhost:2379"/ETCD_LISTEN_CLIENT_URLS="http://10.24.1.3:2379"/g' /etc/etcd/etcd.conf
-sed -i 's/ETCD_NAME="default"/ETCD_NAME="openstack.kuybii.dev"/g' /etc/etcd/etcd.conf
-sed -i 's/#ETCD_INITIAL_ADVERTISE_PEER_URLS="http://localhost:2380"/ETCD_INITIAL_ADVERTISE_PEER_URLS="http://10.24.1.3:2380"/g' /etc/etcd/etcd.conf
-sed -i 's/ETCD_ADVERTISE_CLIENT_URLS="http://localhost:2379"/ETCD_ADVERTISE_CLIENT_URLS="http://10.24.1.3:2379"/g' /etc/etcd/etcd.conf
-sed -i 's/#ETCD_INITIAL_CLUSTER="default=http://localhost:2380"/ETCD_INITIAL_CLUSTER="openstack.kuybii.dev=http://10.24.1.3:2380"/g' /etc/etcd/etcd.conf
-sed -i 's/#ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster"/ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster-01"/g' /etc/etcd/etcd.conf
-sed -i 's/#ETCD_INITIAL_CLUSTER_STATE="new"/ETCD_INITIAL_CLUSTER_STATE="new"/g' /etc/etcd/etcd.conf
+sed -i 's|#ETCD_LISTEN_PEER_URLS="http://localhost:2380"|ETCD_LISTEN_PEER_URLS="http://10.24.1.3:2380"|g' /etc/etcd/etcd.conf
+sed -i 's|ETCD_LISTEN_CLIENT_URLS="http://localhost:2379"|ETCD_LISTEN_CLIENT_URLS="http://10.24.1.3:2379"|g' /etc/etcd/etcd.conf
+sed -i 's|ETCD_NAME="default"|ETCD_NAME="openstack.kuybii.dev"|g' /etc/etcd/etcd.conf
+sed -i 's|#ETCD_INITIAL_ADVERTISE_PEER_URLS="http://localhost:2380"|ETCD_INITIAL_ADVERTISE_PEER_URLS="http://10.24.1.3:2380"|g' /etc/etcd/etcd.conf
+sed -i 's|ETCD_ADVERTISE_CLIENT_URLS="http://localhost:2379"|ETCD_ADVERTISE_CLIENT_URLS="http://10.24.1.3:2379"|g' /etc/etcd/etcd.conf
+sed -i 's|#ETCD_INITIAL_CLUSTER="default=http://localhost:2380"|ETCD_INITIAL_CLUSTER="openstack.kuybii.dev=http://10.24.1.3:2380"|g' /etc/etcd/etcd.conf
+sed -i 's|#ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster"|ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster-01"|g' /etc/etcd/etcd.conf
+sed -i 's|#ETCD_INITIAL_CLUSTER_STATE="new"|ETCD_INITIAL_CLUSTER_STATE="new"|g' /etc/etcd/etcd.conf
 systemctl enable etcd.service
 systemctl start etcd.service
 
 echo "[Starting Task 5: Setting up OpenStack Keystone and Provisioning Endpoints]"
-sed -i 's/#connection = <None>/connection = mysql+pymysql://keystone:jmFKDIV1oTZljiimkGvSDySwzcs4xD2FdurwJztWP7QYW94xyVMbAhNwEKZQGQhr@10.24.1.2/keystone = /g' /etc/keystone/keystone.conf
-sed -i 's/#provider = fernet/provider = fernet/g' /etc/keystone/keystone.conf
+sed -i 's|#connection = <None>|connection = mysql+pymysql://keystone:jmFKDIV1oTZljiimkGvSDySwzcs4xD2FdurwJztWP7QYW94xyVMbAhNwEKZQGQhr@10.24.1.2/keystone|g' /etc/keystone/keystone.conf
+sed -i 's|#provider = fernet|provider = fernet|g' /etc/keystone/keystone.conf
 
 echo "...Populating Keystone Database..."
 su -s /bin/sh -c "keystone-manage db_sync" keystone
@@ -296,7 +296,7 @@ keystone-manage bootstrap --bootstrap-password ADMIN_PASS \
 --bootstrap-public-url http://10.24.1.2:5000/v3/ \
 --bootstrap-region-id Home
 
-sed -i 's/#ServerName www.example.com:80/ServerName 10.24.1.2/g' /etc/httpd/conf/httpd.conf
+sed -i 's|#ServerName www.example.com:80|ServerName 10.24.1.2|g' /etc/httpd/conf/httpd.conf
 ln -s /usr/share/keystone/wsgi-keystone.conf /etc/httpd/conf.d/
 systemctl enable httpd.service
 systemctl start httpd.service
@@ -311,3 +311,28 @@ export OS_PROJECT_DOMAIN_NAME=Default
 export OS_AUTH_URL=http://10.24.1.2:5000/v3
 export OS_IDENTITY_API_VERSION=3
 EOL
+. admin-Openrc
+openstack project create --domain default \
+  --description "Service Project" service
+
+echo "[Starting Task 6: Setting up OpenStack Glance Imaging Service]"
+sed -i 's|#connection = <None>|connection = mysql+pymysql://glance:0DCv0Y0JqNPwd0ZRsmmIP77Txt0a7BM3B402w0TQs68CqXEseeFvXqVVyVYPmtIU@10.24.1.2/glance|g' /etc/glance/glance-api.conf
+	CreateGlance=$(expect -c "
+	set timeout 3
+	spawn openstack user create --domain default --password-prompt glance
+	expect \"User Password:\"
+	send \"2WFWkIdOxwMVPjuOaav9tigSEJUpVb5IZ2WdZ45uuahrHJY3SS5xX4gfi3EZFSRs\r\"
+	expect \"Repeat User Password:\r\"
+	send \"2WFWkIdOxwMVPjuOaav9tigSEJUpVb5IZ2WdZ45uuahrHJY3SS5xX4gfi3EZFSRs\r\"
+	set timeout 7
+	spawn openstack role add --project service --user glance admin
+	set timeout 5
+	spawn openstack service create --name glance --description "Openstack Image" image
+	set timeout 5
+	spawn openstack endpoint create --region Home image public http://10.24.1.2:9292
+	set timeout 5
+	spawn openstack endpoint create --region Home image internal http://10.24.1.2:9292
+	set timeout 5
+	spawn openstack endpoint create --region Home image admin http://10.24.1.2:9292
+	expect eof
+	")
