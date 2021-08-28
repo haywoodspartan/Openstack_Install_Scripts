@@ -121,8 +121,15 @@ if [[ $EUID -ne 0 ]]; then
 fi
 #Check for FIPS Mode Enabled
 if sysctl crypto.fips_enabled -ne 0; then
-	echo "Please enable FIPS Mode Cryptology as root" 0>&1
-	exit 1
+	echo "Would you like to enable FIPS System Cryptography" 0>&1
+	echo    # (optional) move to a new line
+elif [[ ! $REPLY =~ ^[Yy]$ ]]
+	then
+	fips-mode-setup --enabled
+else [[ ! $REPLY =~ ^[Nn]$ ]]
+	then
+		exit 1
+	elfi
 fi
 #Call for the Change of Mariadb Root Password
 if [ -n "${1}" -a -z "${2}" ]; then
