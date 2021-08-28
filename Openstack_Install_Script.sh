@@ -40,11 +40,12 @@ Openstack Admin-Openrc file that is used to initiate openstack administrative co
 Please feel free to look over the code and improve on it as you see fit and do pull requests on the github page you found this on and I will credit you as someone who has worked on it.
 EOF
 }
-echo "Do you agree that this tool may break your environment?"
-select yn in "Yes" "No"
-case $yn in
-	Yes );;
-	No ) exit;; 
+read -p "Do you agree that this tool may break your environment?"
+echo    # (optional) move to a new line
+if [[ ! $REPLY =~ ^[Yy]$ ]]
+then
+    exit 1
+fi
 os=$(uname -s)
 
 # find a sane command to print colored messages, we prefer `printf` over `echo`
