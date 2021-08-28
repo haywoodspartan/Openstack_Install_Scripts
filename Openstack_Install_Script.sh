@@ -40,13 +40,13 @@ Openstack Admin-Openrc file that is used to initiate openstack administrative co
 Please feel free to look over the code and improve on it as you see fit and do pull requests on the github page you found this on and I will credit you as someone who has worked on it.
 EOF
 }
-read -p "Do you agree that this tool may break your environment?"
+read -pr "Do you agree that this tool may break your environment?"
 echo    # (optional) move to a new line
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
     exit 1
 fi
-os=$(uname -s)
+export os=$(uname -s)
 
 # find a sane command to print colored messages, we prefer `printf` over `echo`
 # because `printf` behavior is more standard across Linux/BSD
@@ -120,16 +120,15 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 #Check for FIPS Mode Enabled
-if sysctl crypto.fips_enabled -ne 0; then
+if sysctl crypto.fips_enabled -ne 0;
+ then
 	echo "Would you like to enable FIPS System Cryptography" 0>&1
 	echo    # (optional) move to a new line
-elif [[ ! $REPLY =~ ^[Yy]$ ]]
+ elif [[ ! $REPLY =~ ^[Yy]$ ]]
 	then
 	fips-mode-setup --enabled
-else [[ ! $REPLY =~ ^[Nn]$ ]]
-	then
-		exit 1
-	elfi
+ else [[ ! $REPLY =~ ^[Nn]$ ]]
+	exit 1
 fi
 #Call for the Change of Mariadb Root Password
 if [ -n "${1}" -a -z "${2}" ]; then
@@ -160,7 +159,7 @@ echo "[Starting Task 2: Install NetworkManager and OpenvSwitch for RHEL 8]"
 echo "... About to install and create the Openvswitch bridges and attach static IP's to them ..."
 yum install NetworkManager-ovs openvswitch libibverbs -y
 export NET_DEV="eno1"
-nmcli con |grep -E -w "$[NET_DEV]"
+nmcli con |grep -E -w "$((NET_DEV))"
 systemctl enable --now openvswitch
 systemctl restart NetworkManager
 nmcli con add type ovs-bridge conn.interface provider-br con-name provider-br
