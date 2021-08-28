@@ -9,7 +9,7 @@
 VERSION='0.13'
 
 trap 'exit_cleanup' EXIT
-trap '_warn "interrupted, cleaning up..."; exit_cleanup; exit 1' INT
+trap 'echo "interrupted, cleaning up..."; exit_cleanup; exit 1' INT
 exit_cleanup()
 {
 	#Cleanup Files and packages that are samples or copied and modified
