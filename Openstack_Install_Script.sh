@@ -43,7 +43,7 @@ EOF
 while true; do
 		read -p "Do you agree that this tool may break your environment?"
 	case $yn in
-		[Yy]* ) ; break;;
+		[Yy]* ) break;;
 		[Nn]* ) exit;;
 		* ) echo "Pleas answer yes or no.";;
 	esac
