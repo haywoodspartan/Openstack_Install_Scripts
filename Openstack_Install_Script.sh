@@ -40,7 +40,7 @@ Openstack Admin-Openrc file that is used to initiate openstack administrative co
 Please feel free to look over the code and improve on it as you see fit and do pull requests on the github page you found this on and I will credit you as someone who has worked on it.
 EOF
 }
-read -pr "Do you agree that this tool may break your environment?"
+read -p "Do you agree that this tool may break your environment?"
 echo    # (optional) move to a new line
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
