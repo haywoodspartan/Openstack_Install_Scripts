@@ -40,12 +40,14 @@ Openstack Admin-Openrc file that is used to initiate openstack administrative co
 Please feel free to look over the code and improve on it as you see fit and do pull requests on the github page you found this on and I will credit you as someone who has worked on it.
 EOF
 }
-read -p "Do you agree that this tool may break your environment?"
-echo    # (optional) move to a new line
-if [[ ! $REPLY =~ ^[Yy]$ ]]
-then
-    exit 1
-fi
+while true; do
+		read -p "Do you agree that this tool may break your environment?"
+	case $yn in
+		[Yy]* ) ; break;;
+		[Nn]* ) exit;;
+		* ) echo "Pleas answer yes or no.";;
+	esac
+done
 export os=$(uname -s)
 
 # find a sane command to print colored messages, we prefer `printf` over `echo`
@@ -129,7 +131,7 @@ if sysctl crypto.fips_enabled -ne 1>&2;
 	fips-mode-setup --enabled
  else [[ ! $REPLY =~ ^[Nn]$ ]]
 	exit 1
-	elfi
+ elfi
 fi
 #Call for the Change of Mariadb Root Password
 if [ -n "${1}" -a -z "${2}" ]; then
