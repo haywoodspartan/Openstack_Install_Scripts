@@ -45,7 +45,7 @@ while true; do
 	case $yn in
 		[Yy]* ) break;;
 		[Nn]* ) exit;;
-		* ) echo "Pleas answer yes or no.";;
+		* ) echo "Please answer yes or no.";;
 	esac
 done
 export os=$(uname -s)
@@ -398,8 +398,9 @@ spawn openstack endpoint create --region Home placemnt admin http://10.24.1.2:87
 expect eof
 ")
 #
-#Execute Create Glance
+#Execute Create Placement API
 #
+
 echo "${CreatePlacement}"
 sed -i 's|#connection = <None>|connection = mysql+pymysql://placement:tTlFAXHcYSJmIdNhkwIez7W8cJcdErBty548VUhBqrdhaf3gKO4k7l01fny3bH3y@10.24.1.2/placement|g' /etc/placement/placement.conf
 cat <<EOT >> /etc/placement/placement.conf
@@ -422,3 +423,29 @@ placement-status upgrade check
 pip3 install osc-placement -y
 openstack --os-placement-api-version 1.2 resource class list --sort-column name
 openstack --os-placement-api-version 1.6 trait list --sort-column name
+
+
+echo "[Starting Task 8: Setting up OpenStack Nova API Service]"
+CreateNovaAPI=$(expect -c "
+set timeout 3
+spawn openstack user create --domain default --password-prompt nova_api
+expect \"User Password:\"
+send \"39RIGUiolIvSvUjxhQGd59wT4HpyoQgHHjoZ4gqBJ3sR6qrU8144fnGxdm40Ibt6\r\"
+expect \"Repeat User Password:\r\"
+send \"39RIGUiolIvSvUjxhQGd59wT4HpyoQgHHjoZ4gqBJ3sR6qrU8144fnGxdm40Ibt6\r\"
+set timeout 7
+spawn openstack role add --project service --user nova admin
+set timeout 5
+spawn openstack service create 00name nova --description "OpenStack Compute" Compute
+set timeout 5
+spawn openstack endpoint create --region Home nova compute public http://10.24.1.2:8774/v2.1
+set timeout 5
+spawn openstack endpoint create --region Home nova compute internal http://10.24.1.2:8774/v2.1
+set timeout 5
+spawn openstack endpoint create --region Home nova compute admin http://10.24.1.2:8774/v2.1
+")
+#
+#Execute Create Nova API
+#
+
+echo "${CreateNovaAPI}"
