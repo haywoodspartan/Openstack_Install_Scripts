@@ -486,6 +486,9 @@ api_servers = http://10.24.1.2:9292
 [oslo_concurrency]
 lock_path = /var/lib/nova/tmp
 
+[scheduler]
+discover_hosts_in_cells_interval = 300
+
 [placement]
 region_name = Home
 project_domain_name = Default
@@ -513,3 +516,6 @@ systemctl start \
     openstack-nova-scheduler.service \
     openstack-nova-conductor.service \
     openstack-nova-novncproxy.service
+egrep -c '(vmx|svm)' /proc/cpuinfo
+systemctl enable libvirtd.service openstack-nova-compute.service
+systemctl start libvirtd.service openstack-nova-compute.service
