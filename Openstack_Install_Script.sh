@@ -449,3 +449,67 @@ spawn openstack endpoint create --region Home nova compute admin http://10.24.1.
 #
 
 echo "${CreateNovaAPI}"
+cat <<EOT >> /etc/nova/nova.conf
+[DEFAULT]
+enabled_apiws = osapi_compute,metadata
+transport_url = rabbit://openstack:W40LFZa5ko6IiJ3KFHkAmLegBy8bY3O29xAvc0xpEQt2AbmlVYAce7m8DtRVQTh8@10.24.1.2:5672/
+my_ip = 10.24.1.2
+
+[api_database]
+connection = mysql+pymysql://nova:UvSYhWaLBs8ty1TJ47PfpciX7KrGYOe28Tqz7pXKeAdMHCSU2TX3Ng1PSIEBraql@10.24.1.2/nova_api
+
+[database]
+connection = mysql+pymysql://nova:UvSYhWaLBs8ty1TJ47PfpciX7KrGYOe28Tqz7pXKeAdMHCSU2TX3Ng1PSIEBraql@10.24.1.2/nova
+
+[api]
+auth_strategy = keystone
+
+[keystone_authtoken]
+www_authenticate_uri = http://10.24.1.2:5000/
+auth_url = http://10.24.1.2:5000/
+memcached_servers = 10.24.1.2:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = nova
+password = 39RIGUiolIvSvUjxhQGd59wT4HpyoQgHHjoZ4gqBJ3sR6qrU8144fnGxdm40Ibt6
+
+[vnc]
+enabled = True
+server_listen = 10.24.1.2
+server_proxyclient_address = 10.24.1.2
+
+[glance]
+api_servers = http://10.24.1.2:9292
+
+[oslo_concurrency]
+lock_path = /var/lib/nova/tmp
+
+[placement]
+region_name = Home
+project_domain_name = Default
+project_name = service
+auth_type = password
+user_domain_name = Default
+auth_url = http://10.24.1.2:5000/v3
+username = placement
+password = 740EMvnrkkNmLGIi2KyR0WaRoM9ftbfnBuS9IGLewOdnFQktBxdhEzuFfvm6oEtD
+EOT
+su -s /bin/sh -c "nova-manage api_db sync" nova
+sleep 2
+su -s /bin/sh -c "nova-manage cell_v2 map_cell0" nova
+sleep 2
+su -s /bin/sh -c "nova-manage cell_v2 create_cell --name=cell1 --verbose" nova
+sleep 2
+su -s /bin/sh -c "nova-manage cell_v2 list_cells" nova
+systemctl enable \
+    openstack-nova-api.service \
+    openstack-nova-scheduler.service \
+    openstack-nova-conductor.service \
+    openstack-nova-novncproxy.service
+systemctl start \
+    openstack-nova-api.service \
+    openstack-nova-scheduler.service \
+    openstack-nova-conductor.service \
+    openstack-nova-novncproxy.service
