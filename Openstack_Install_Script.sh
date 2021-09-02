@@ -15,6 +15,13 @@ VERSION='0.20'
 
 trap 'exit_cleanup' EXIT
 trap 'echo "interrupted, cleaning up..."; exit_cleanup; exit 1' INT
+trap 'catch' ERR
+catch() {
+  echo "An error has occurred but we're going to eat it!!"
+}
+echo "Before bad command"
+badcommand
+echo "After bad command"
 exit_cleanup()
 {
 	#Cleanup Files and packages that are samples or copied and modified
