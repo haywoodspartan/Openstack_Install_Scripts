@@ -498,6 +498,10 @@ user_domain_name = Default
 auth_url = http://10.24.1.2:5000/v3
 username = placement
 password = 740EMvnrkkNmLGIi2KyR0WaRoM9ftbfnBuS9IGLewOdnFQktBxdhEzuFfvm6oEtD
+
+[cinder]
+os_region_name = Home
+
 EOT
 su -s /bin/sh -c "nova-manage api_db sync" nova
 sleep 2
@@ -517,5 +521,70 @@ systemctl start \
     openstack-nova-conductor.service \
     openstack-nova-novncproxy.service
 egrep -c '(vmx|svm)' /proc/cpuinfo
+
+echo "[Starting Task 9: Installing OpenStack Nova Compute Systems]"
 systemctl enable libvirtd.service openstack-nova-compute.service
 systemctl start libvirtd.service openstack-nova-compute.service
+
+echo "[Starting Task 10: Installing OpenStack Cinder Block Storage Systems]"
+CreateCinderAPI=$(expect -c "
+set timeout 1
+spawn openstack role add --project service --user cinder admin
+set timeout 3
+spawn openstack service create --name cinderv3 --description "OpenStack Block Storage" volumev3
+set timeout 3
+spawn openstack endpoint create --region Home volumev3 public http://10.24.1.2:8776/v3/%\(project_id\)s
+set timeout 3
+spawn openstack endpoint create --region Home volumev3 internal http://10.24.1.2:8776/v3/%\(project_id\)s
+set timeoput 3
+spawn openstack endpoint create --region Home volumev3 admin http://10.24.1.2:8776/v3/%\(project_id\)s
+")
+
+#
+#Execute Create Cinder API
+#
+echo "${CreateCinderAPI}"
+cat <<EOT >> /etc/cinder/cinder.conf
+[DEFAULT]
+transport_url = rabbit://openstack:W40LFZa5ko6IiJ3KFHkAmLegBy8bY3O29xAvc0xpEQt2AbmlVYAce7m8DtRVQTh8@10.24.1.2:5672/
+auth_strategy = keystone
+my_ip = 10.24.1.2
+enabled_backends = lvm1,lvm2
+glance_api_servers = http://10.24.1.2:9292
+
+[database]
+connection = mysql+pymysql://cinder:aYdMWWoa4qyjrF9WmIRjo2ybiDEBcwbuPcghDWESMLHajpcJmRE517BXNpLi4wZ4@10.24.1.2/cinder
+
+[keystone_authtoken]
+www_authenticate_uri = http://10.24.1.2:5000
+auth_url = http://10.2.4.1.2:5000
+memcached_servers = 10.24.1.2:11211
+auth_type = password
+project_domain_name = default
+user_domain_name = default
+project_name = service
+username = cinder
+password = WLTKgyO14omuHdjKJiHktzmg4RtaErgTiAzqrlKbfyLs3ZBp6RB9rFh4NgluPx6P
+
+[oslo_concurrency]
+lock_path = /var/lib/cinder/tmp
+
+[lvm1]
+volume_driver = cinder.volume.drivers.lvm.LVMVolumeDriver
+volume_group = cinder-volumes-HDD
+target_protocol = iscsi
+target_helper = lioadm
+
+[lvm2]
+volume_driver = cinder.volume.drivers.lvm.LVMVolumeDriver
+volume_group = cinder-volumes-SSD
+target_protocol = iscsi
+target_helper = lioadm
+EOT
+su -s /bin/sh -c "cinder-manage db sync" cinder
+systemctl restart openstack-nova-api.service
+systemctl enable openstack-cinder-api.service openstack-cinder-scheduler.service
+systemctl restart openstack-cinder-api.service openstack-cinder-scheduler.service
+yum install targetcli
+systemctl enable openstack-cinder-volume.service target.service
+systemctl restart openstack-cinder-volume.service target.service
