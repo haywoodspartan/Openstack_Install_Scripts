@@ -11,7 +11,7 @@ PrimaryIP=10.24.1.2
 
 
 
-VERSION='0.13'
+VERSION='0.20'
 
 trap 'exit_cleanup' EXIT
 trap 'echo "interrupted, cleaning up..."; exit_cleanup; exit 1' INT
@@ -45,13 +45,12 @@ Openstack Admin-Openrc file that is used to initiate openstack administrative co
 Please feel free to look over the code and improve on it as you see fit and do pull requests on the github page you found this on and I will credit you as someone who has worked on it.
 EOF
 }
-while true; do
-		read -p "Do you agree that this tool may break your environment?"
-	case $yn in
-		[Yy]* ) break;;
-		[Nn]* ) exit;;
-		* ) echo "Please answer yes or no.";;
-	esac
+echo "Do you agree that this tool may break your environment?"
+select yn in "Yes" "No"; do
+        case $yn in
+           Yes ) break ;;
+           No ) exit 1;
+        esac
 done
 export os=$(uname -s)
 
