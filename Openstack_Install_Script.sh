@@ -8,10 +8,26 @@
 # Uh oh Retard Alert my first full blown Linux Bash Script only for RHEL and CENTOS/FEDORA
 PrimaryNIC=eno1
 PrimaryIP=10.24.1.2
+RabbitPassword=W40LFZa5ko6IiJ3KFHkAmLegBy8bY3O29xAvc0xpEQt2AbmlVYAce7m8DtRVQTh8
+KeystoneDB=jmFKDIV1oTZljiimkGvSDySwzcs4xD2FdurwJztWP7QYW94xyVMbAhNwEKZQGQhr
+CinderDB=aYdMWWoa4qyjrF9WmIRjo2ybiDEBcwbuPcghDWESMLHajpcJmRE517BXNpLi4wZ4
+CinderPassword=WLTKgyO14omuHdjKJiHktzmg4RtaErgTiAzqrlKbfyLs3ZBp6RB9rFh4NgluPx6P
+GlanceDB=0DCv0Y0JqNPwd0ZRsmmIP77Txt0a7BM3B402w0TQs68CqXEseeFvXqVVyVYPmtIU
+GlancePassword=2WFWkIdOxwMVPjuOaav9tigSEJUpVb5IZ2WdZ45uuahrHJY3SS5xX4gfi3EZFSRs
+PlacementDB=tTlFAXHcYSJmIdNhkwIez7W8cJcdErBty548VUhBqrdhaf3gKO4k7l01fny3bH3y
+PlacementPassword=740EMvnrkkNmLGIi2KyR0WaRoM9ftbfnBuS9IGLewOdnFQktBxdhEzuFfvm6oEtD
+NovaDBs=UvSYhWaLBs8ty1TJ47PfpciX7KrGYOe28Tqz7pXKeAdMHCSU2TX3Ng1PSIEBraql
+NovaPassword=39RIGUiolIvSvUjxhQGd59wT4HpyoQgHHjoZ4gqBJ3sR6qrU8144fnGxdm40Ibt6
+NeutronDB=VixEoW6BcpuRmmm7GYPYj0pwB1nvIsXtf8cqCsn7RiB9ehElWCzA5g60D4NEX0Jx
+NeutronPassword=x71ZmaKYFIbtdkImCvX23scjJ2uZ6dMAD90ESetesjzo1v39vLMmRFvP6AicOZvR
+HeatDB=Cbyyb8c0HdpHJqxSU60Hg6zUKmB0AkP3Z5oTNkLpkIHtotcag8JRb7v64MQb60vg
+HeatPassword=v6nzWr3NmqbvW3z2GUfsdRKCgUjrVEDZmXWx5MeK2tKNdCWk9kvzqXRwBoxbtP7c
+HeatDomain=nJ7HRk1hvCiet1cCJ33sKUeqmp33gWIl7eqjSV4U4Vp60n5kG0xGpbtKEkQZgSMj
+ZunDB=AiYmLoKzLlNKDB2N1evROGjWSevltpcxT7GgyjbBM16Ox5q0Tex7vzPg3l4phRvr
+ZunPassword=O1v88JCDRMfZlkMkrE9w8GQqTQrNqKVeI2wTrmeTXQl5GfoU1RaaOle1KnwkziPW
+MetadataSecret=g8nhVLzgVqZWPAJoHnMfzFnlay7N25kYyIm56YB47D1u6X0tga8Z9HQqHakt7Cko
 
-
-
-VERSION='0.20'
+VERSION='0.30'
 
 trap 'exit_cleanup' EXIT
 trap 'echo "interrupted, cleaning up..."; exit_cleanup; exit 1' INT
@@ -630,6 +646,36 @@ cat <<EOT >> /etc/neutron/neutron.conf
 [DEFAULT]
 core_plugin = ml2
 service_plugins = ovn-router
+allow_overlapping_ips = true
+transport_url = rabbit://openstack:W40LFZa5ko6IiJ3KFHkAmLegBy8bY3O29xAvc0xpEQt2AbmlVYAce7m8DtRVQTh8@${PrimaryIP}
+auth_strategy = keystone
+notify_nova_on_port_status_changes = true
+notify_nova_on_port_data_changes = true
+
+[keystone_authtoken]
+www_authenticate_uri = http://${PrimaryIP}:5000
+auth_url = http://${PrimaryIP}:5000
+memcached_servers = ${PrimaryIP}:11211
+auth_type = password
+project_domain_name = default
+user_domain_name = default
+project_name = service
+username = neutron
+password = x71ZmaKYFIbtdkImCvX23scjJ2uZ6dMAD90ESetesjzo1v39vLMmRFvP6AicOZvR
+
+[nova]
+# ...
+auth_url = http://${PrimaryIP}:5000
+auth_type = password
+project_domain_name = default
+user_domain_name = default
+region_name = Home
+project_name = service
+username = nova
+password = 39RIGUiolIvSvUjxhQGd59wT4HpyoQgHHjoZ4gqBJ3sR6qrU8144fnGxdm40Ibt6
+
+[database]
+connection = mysql+pymysql://neutron:VixEoW6BcpuRmmm7GYPYj0pwB1nvIsXtf8cqCsn7RiB9ehElWCzA5g60D4NEX0Jx@${PrimaryIP}/neutron
 EOT
 
 cat <<EOT >> /etc/neutron/plugins/ml2/ml2_conf.ini
@@ -645,7 +691,8 @@ vni_ranges = 1:65536
 max_header_size = 38
 
 [ml2_type_vlan]
-network_vlan_ranges = PHYSICAL_NETWORK:MIN_VLAN_ID:MAX_VLAN_ID
+network_vlan_ranges = provider-br-int:1000:2000
 
 [securitygroup]
 enable_security_group = true
+EOT
