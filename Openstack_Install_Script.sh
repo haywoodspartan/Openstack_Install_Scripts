@@ -26,6 +26,8 @@ HeatDomain=nJ7HRk1hvCiet1cCJ33sKUeqmp33gWIl7eqjSV4U4Vp60n5kG0xGpbtKEkQZgSMj
 ZunDB=AiYmLoKzLlNKDB2N1evROGjWSevltpcxT7GgyjbBM16Ox5q0Tex7vzPg3l4phRvr
 ZunPassword=O1v88JCDRMfZlkMkrE9w8GQqTQrNqKVeI2wTrmeTXQl5GfoU1RaaOle1KnwkziPW
 MetadataSecret=g8nhVLzgVqZWPAJoHnMfzFnlay7N25kYyIm56YB47D1u6X0tga8Z9HQqHakt7Cko
+Region=Home
+
 
 VERSION='0.30'
 
@@ -499,7 +501,7 @@ project_domain_name = Default
 user_domain_name = Default
 project_name = service
 username = nova
-password = 39RIGUiolIvSvUjxhQGd59wT4HpyoQgHHjoZ4gqBJ3sR6qrU8144fnGxdm40Ibt6
+password = ${NovaPassword}
 
 [vnc]
 enabled = True
@@ -516,7 +518,7 @@ lock_path = /var/lib/nova/tmp
 discover_hosts_in_cells_interval = 300
 
 [placement]
-region_name = Home
+region_name = ${Region}
 project_domain_name = Default
 project_name = service
 auth_type = password
@@ -528,6 +530,17 @@ password = 740EMvnrkkNmLGIi2KyR0WaRoM9ftbfnBuS9IGLewOdnFQktBxdhEzuFfvm6oEtD
 [cinder]
 os_region_name = Home
 
+[neutron]
+auth_url = http://${PrimaryIP}:5000
+auth_type = password
+project_domain_name = default
+user_domain_name = default
+region_name = ${Region}
+project_name = service
+username = neutron
+password = ${NeutronPassword}
+service_metadata_proxy = true
+metadata_proxy_shared_secret = ${MetadataSecret}
 EOT
 su -s /bin/sh -c "nova-manage api_db sync" nova
 sleep 2
@@ -669,13 +682,16 @@ auth_url = http://${PrimaryIP}:5000
 auth_type = password
 project_domain_name = default
 user_domain_name = default
-region_name = Home
+region_name = ${Region}
 project_name = service
 username = nova
 password = 39RIGUiolIvSvUjxhQGd59wT4HpyoQgHHjoZ4gqBJ3sR6qrU8144fnGxdm40Ibt6
 
 [database]
 connection = mysql+pymysql://neutron:VixEoW6BcpuRmmm7GYPYj0pwB1nvIsXtf8cqCsn7RiB9ehElWCzA5g60D4NEX0Jx@${PrimaryIP}/neutron
+
+[oslo_concurrency]
+lock_path = /var/lib/neutron/tmp
 EOT
 
 cat <<EOT >> /etc/neutron/plugins/ml2/ml2_conf.ini
@@ -690,9 +706,46 @@ overlay_ip_version = 4
 vni_ranges = 1:65536
 max_header_size = 38
 
+[ml2_type_vxlan]
+enable_vxlan = true
+local_ip = ${PrimaryIP}
+l2_population = true
+
 [ml2_type_vlan]
 network_vlan_ranges = provider-br-int:1000:2000
 
 [securitygroup]
 enable_security_group = true
+enable_ipset = true
+
+[ovn]
+ovn_nb_connection = tcp:${PrimaryIP}:6641
+ovn_sb_connection = tcp:${PrimaryIP}:6642
+ovn_l3_scheduler = chance
 EOT
+
+cat <<EOT >> /etc/neutron/metadata_agent.ini
+[Default]
+nova_metadata_host = ${PrimaryIP}
+metadata_proxy_shared_secret = ${MetadataSecret}
+EOT
+
+cat <<EOT >> /etc/neutron/l3_agent.ini
+[DEFAULT]
+interface_driver = ovn
+EOT
+
+cat <<EOT >> /etc/neutron/dhcp_agent.ini
+[Default]
+interface_driver = ovn
+dhcp_driver = neutron.agent.linux.dhcp.Dnsmasq
+enable_isolated_metadata = true
+EOT
+
+ln -s /etc/neutron/plugins/ml2/ml2_conf.ini /etc/neutron/plugin.ini
+su -s /bin/sh -c "neutron-db-manage --config-file /etc/neutron/neutron.conf --config-file /etc/neutron/plugins/ml2/ml2_conf.ini upgrade head" neutron
+systemctl restart openstack-nova-api.service
+systemctl enable neutron-server.service neutron-linuxbridge-agent.service neutron-dhcp-agent.service neutron-metadata-agent.service
+systemctl restart neutron-server.service neutron-linuxbridge-agent.service neutron-dhcp-agent.service neutron-metadata-agent.service
+systemctl enable neutron-l3-agent.service
+systemctl restart neutron-l3-agent.service
