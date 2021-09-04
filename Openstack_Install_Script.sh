@@ -749,3 +749,99 @@ systemctl enable neutron-server.service neutron-linuxbridge-agent.service neutro
 systemctl restart neutron-server.service neutron-linuxbridge-agent.service neutron-dhcp-agent.service neutron-metadata-agent.service
 systemctl enable neutron-l3-agent.service
 systemctl restart neutron-l3-agent.service
+
+echo "[Starting Task 12: Installing OpenStack Horizon Dashboard]"
+yum install openstack-dashboard mod_ssl -y
+cat <<EOT >> /etc/openstack-dashboard/local_settings
+#CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '10.24.1.2:11211',
+    },
+}
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+OPENSTACK_KEYSTONE_URL = "http://%s/identity/v3" % OPENSTACK_HOST
+OPENSTACK_KEYSTONE_MULTIDOMAIN_SUPPORT = True
+OPENSTACK_API_VERSIONS = {
+    "identity": 3,
+    "image": 2,
+    "volume": 3,
+}
+OPENSTACK_KEYSTONE_DEFAULT_DOMAIN = "Default"
+OPENSTACK_KEYSTONE_DEFAULT_ROLE = "user"
+OPENSTACK_NEUTRON_NETWORK = {
+    'enable_router': True,
+    'enable_quotas': True,
+    'enable_distributed_router': True,
+    'enable_ha_router': True,
+    'enable_fip_topology_check': True,
+}
+EOT
+cat <<EOT >> /etc/httpd/conf.d/openstack-dashboard.conf
+<VirtualHost *:80>
+    ServerName openstack.kuybii.dev
+  <IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTPS} off
+    RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+  </IfModule>
+  <IfModule !mod_rewrite.c>
+    RedirectPermanent / https://openstack.kuybii.dev
+  </IfModule>
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName openstack.kuybii.dev
+
+   SSLEngine On
+   # Remember to replace certificates and keys with valid paths in your environment
+   SSLCertificateFile /etc/httpd/SSL/openstack.kuybii.dev.crt
+   SSLCACertificateFile /etc/httpd/SSL/openstack.kuybii.dev.CA.crt
+   SSLCertificateKeyFile /etc/httpd/SSL/openstack.kuybii.dev.key
+   SetEnvIf User-Agent ".*MSIE.*" nokeepalive ssl-inclean-shutdown
+
+# HTTP Strict Transport Security (HSTS) enforces that all communications
+# with a server go over SSL. This mitigates the threat from attacks such
+# as SSL-Strip which replaces links on the wire, stripping away https prefixes
+# and potentially allowing an attacker to view confidential information on the
+# wire
+   Header add Strict-Transport-Security "max-age=15768000"
+
+    WSGIScriptAlias /dashboard /usr/share/openstack-dashboard/openstack_dashboard/wsgi.py
+    WSGIDaemonProcess dashboard
+    WSGIApplicationGroup dashboard
+    SetEnv APACHE_RUN_USER apache
+    SetEnv APACHE_RUN_GROUP apache
+#    WSGIProcessGroup horizon
+    DocumentRoot /usr/share/openstack-dashboard/.blackhole/
+    Alias /dashboard/media /usr/share/openstack-dashboard/openstack_dashboard/media
+    Alias /dashboard/static /usr/share/openstack-dashboard/static
+    RedirectMatch "^/$" "/dashboard/"
+    <Directory />
+        Options FollowSymLinks
+        AllowOverride None
+    </Directory>
+    <Directory /usr/share/>
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride None
+        # Apache 2.4 uses mod_authz_host for access control now (instead of
+        #  "Allow")
+        <IfVersion < 2.4>
+            Order allow,deny
+            Allow from all
+        </IfVersion>
+        <IfVersion >= 2.4>
+            Require all granted
+        </IfVersion>
+    </Directory>
+    <IfVersion >= 2.4>
+      ErrorLogFormat "%{cu}t %M"
+    </IfVersion>
+    ErrorLog /var/log/horizon/horizon_error.log
+    LogLevel warn
+    CustomLog /var/log/horizon/horizon_access.log combined
+</VirtualHost>
+WSGISocketPrefix /var/run/%APACHE_NAME%
+EOT
+systemctl restart httpd.service memcached.service
