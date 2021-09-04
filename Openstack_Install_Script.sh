@@ -260,7 +260,11 @@ echo "${SECURE_MYSQL}"
 # Execution of Provisioning Openstack Tables
 #
 
-mysql -u root -p "$NEW_MYSQL_PASSWORD" <<EOF
+mysql -u root -p <<EOF
+USE mysql;
+GRANT ALL PRIVILEGES ON *.* to 'root'@'%' IDENTIFIED BY \
+'{$NEW_MYSQL_PASSWORD}';
+GRANT GRANT OPTION ON *.* TO 'root'@'%';
 CREATE SCHEMA placement;
 CREATE SCHEMA glance;
 CREATE SCHEMA cinder;
@@ -271,9 +275,6 @@ CREATE SCHEMA nova;
 CREATE SCHEMA nova_cell0;
 CREATE SCHEMA zun;
 CREATE SCHEMA heat;
-GRANT ALL PRIVILEGES ON *.* to 'root'@'%' IDENTIFIED BY \
-'{$NEW_MYSQL_PASSWORD}';
-GRANT GRANT OPTION ON *.* TO 'root'@'%';
 GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'localhost' IDENTIFIED BY 'aYdMWWoa4qyjrF9WmIRjo2ybiDEBcwbuPcghDWESMLHajpcJmRE517BXNpLi4wZ4';
 GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'aYdMWWoa4qyjrF9WmIRjo2ybiDEBcwbuPcghDWESMLHajpcJmRE517BXNpLi4wZ4';
 GRANT ALL PRIVILEGES ON neutron.* TO 'neutron'@'localhost' IDENTIFIED BY 'VixEoW6BcpuRmmm7GYPYj0pwB1nvIsXtf8cqCsn7RiB9ehElWCzA5g60D4NEX0Jx';
@@ -295,6 +296,8 @@ GRANT ALL PRIVILEGES ON heat.* TO 'heat'@'%' IDENTIFIED BY 'Cbyyb8c0HdpHJqxSU60H
 GRANT ALL PRIVILEGES ON zun.* TO 'zun'@'localhost' IDENTIFIED BY 'AiYmLoKzLlNKDB2N1evROGjWSevltpcxT7GgyjbBM16Ox5q0Tex7vzPg3l4phRvr';
 GRANT ALL PRIVILEGES ON zun.* TO 'zun'@'%' IDENTIFIED BY 'AiYmLoKzLlNKDB2N1evROGjWSevltpcxT7GgyjbBM16Ox5q0Tex7vzPg3l4phRvr';
 EOF
+expect -c \"Enter password:\"
+send \"$CURRENT_MYSQL_PASSWORD\r\"
 exit;
 
 echo "[Starting Task 4.1: Setting up Rabbit Message Queue Service System]"
