@@ -845,3 +845,4 @@ cat <<EOT >> /etc/httpd/conf.d/openstack-dashboard.conf
 WSGISocketPrefix /var/run/%APACHE_NAME%
 EOT
 systemctl restart httpd.service memcached.service
+exit 1
