@@ -263,7 +263,7 @@ echo "${SECURE_MYSQL}"
 # Execution of Provisioning Openstack Tables
 #
 
-mysql -u root -p <<EOF
+mysql -u root -p"${1}" <<Provision
 USE mysql;
 GRANT ALL PRIVILEGES ON *.* to 'root'@'%' IDENTIFIED BY \
 '{$NEW_MYSQL_PASSWORD}';
@@ -298,7 +298,7 @@ GRANT ALL PRIVILEGES ON heat.* TO 'heat'@'localhost' IDENTIFIED BY 'Cbyyb8c0HdpH
 GRANT ALL PRIVILEGES ON heat.* TO 'heat'@'%' IDENTIFIED BY 'Cbyyb8c0HdpHJqxSU60Hg6zUKmB0AkP3Z5oTNkLpkIHtotcag8JRb7v64MQb60vg';
 GRANT ALL PRIVILEGES ON zun.* TO 'zun'@'localhost' IDENTIFIED BY 'AiYmLoKzLlNKDB2N1evROGjWSevltpcxT7GgyjbBM16Ox5q0Tex7vzPg3l4phRvr';
 GRANT ALL PRIVILEGES ON zun.* TO 'zun'@'%' IDENTIFIED BY 'AiYmLoKzLlNKDB2N1evROGjWSevltpcxT7GgyjbBM16Ox5q0Tex7vzPg3l4phRvr';
-EOF
+Provision
 exit;
 
 echo "[Starting Task 4.1: Setting up Rabbit Message Queue Service System]"
