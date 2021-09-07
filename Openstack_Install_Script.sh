@@ -177,6 +177,9 @@ else
     echo "  Change mysql root password: ${0} 'your_old_root_password' 'your_new_root_password'"
     exit 1
 fi
+#Check Firewalld
+systemctl stop firewalld.service
+systemctl disable firewalld.service
 echo "[Starting Task 1: Yum Update and Enable Required Subscriptions for RHEL 8]"
 echo "... About to create and enable repo files and gpg keys with cat commands ..."
 setenforce 0
@@ -249,7 +252,7 @@ expect \"Remove test database and access to it?\"
 send \"y\r\"
 expect \"Reload privilege tables now?\"
 send \"y\r\"
-expect eof
+send \"exit\"
 ")
 #
 # Execution mysql_secure_installation
@@ -296,8 +299,6 @@ GRANT ALL PRIVILEGES ON heat.* TO 'heat'@'%' IDENTIFIED BY 'Cbyyb8c0HdpHJqxSU60H
 GRANT ALL PRIVILEGES ON zun.* TO 'zun'@'localhost' IDENTIFIED BY 'AiYmLoKzLlNKDB2N1evROGjWSevltpcxT7GgyjbBM16Ox5q0Tex7vzPg3l4phRvr';
 GRANT ALL PRIVILEGES ON zun.* TO 'zun'@'%' IDENTIFIED BY 'AiYmLoKzLlNKDB2N1evROGjWSevltpcxT7GgyjbBM16Ox5q0Tex7vzPg3l4phRvr';
 EOF
-expect -c \"Enter password:\"
-send \"$CURRENT_MYSQL_PASSWORD\r\"
 exit;
 
 echo "[Starting Task 4.1: Setting up Rabbit Message Queue Service System]"
