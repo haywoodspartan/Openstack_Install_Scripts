@@ -6,8 +6,8 @@
 # Written by Stephen Hawking (Haywoodspartan#0001) @ Awakened Network LLP
 #
 # Uh oh Retard Alert my first full blown Linux Bash Script only for RHEL and CENTOS/FEDORA
-PrimaryNIC=eno1
-PrimaryIP=10.24.1.2
+PrimaryNIC="eno1"
+PrimaryIP="10.24.1.2"
 RabbitPassword=W40LFZa5ko6IiJ3KFHkAmLegBy8bY3O29xAvc0xpEQt2AbmlVYAce7m8DtRVQTh8
 KeystoneDB=jmFKDIV1oTZljiimkGvSDySwzcs4xD2FdurwJztWP7QYW94xyVMbAhNwEKZQGQhr
 CinderDB=aYdMWWoa4qyjrF9WmIRjo2ybiDEBcwbuPcghDWESMLHajpcJmRE517BXNpLi4wZ4
@@ -152,15 +152,14 @@ if [[ $EUID -ne 0 ]]; then
 fi
 #Check for FIPS Mode Enabled
 if sysctl crypto.fips_enabled -ne 1>&2;
- then
-	read -p "Would you like to enable FIPS System Cryptography" 0>&1
-	echo    # (optional) move to a new line
- elif [[ ! $REPLY =~ ^[Yy]$ ]]
 	then
-	fips-mode-setup --enabled
- else [[ ! $REPLY =~ ^[Nn]$ ]]
-	exit 1
- elfi
+		read -p "Would you like to enable FIPS System Cryptography" 0>&1
+		select yn in "Yes" "No"; do
+			case $yn in
+			Yes ) break ;;
+			No ) exit 1;
+			esac
+		done
 fi
 #Call for the Change of Mariadb Root Password
 if [ -n "${1}" -a -z "${2}" ]; then
@@ -203,7 +202,7 @@ nmcli con add type ovs-interface slave-type ovs-port conn.interface provider-br 
 nmcli con add type ovs-port conn.interface provider-br-eno1 master provider-br con-name provider-br-port-eno1
 nmcli con add type ethernet conn.interface "${PrimaryNIC}" master provider-br-eno1 con-name provider-br-port-eno1-int
 nmcli con modify provider-br-int ipv4.method disabled ipv6.method disabled
-nmcli con modify provider-br-int ipv4.method static ipv4.addresses ${PrimaryIP}/21,${PrimaryIP}/32
+nmcli con modify provider-br-int ipv4.method static ipv4.addresses ""${PrimaryIP}""/21,""${PrimaryIP}""/32
 nmcli con modify provider-br-int ipv4.gateway 10.24.0.1
 nmcli con modify provider-br-int ipv4.dns 10.24.0.1
 nmcli con down "${PrimaryNIC}" ; \
@@ -221,7 +220,7 @@ yum install openstack-keystone openstack-neutron openstack-neutron-ml2 openstack
 echo "[Starting Task 4: Provisioning Database defaults for OpenStack Wallaby]"
 cat >/etc/my.cnf.d/openstack.cnf <<EOL
 [mysqld]
-bind-address = ${PrimaryIP}
+bind-address = ""${PrimaryIP}""
 
 default-storage-engine = innodb
 innodb_file_per_table = on
@@ -309,24 +308,24 @@ sed -i 's|# vm_memory_high_watermark.absolute = 2GB|vm_memory_high_watermark = 7
 systemctl restart rabbitmq-server.service
 
 echo "[Starting Task 4.2: Setting up Memcached Service]"
-sed -i 's|OPTIONS="-l 127.0.0.1,::1"|OPTIONS="-l 127.0.0.1,::1,${PrimaryIP}s,"|g' /etc/sysconfig/memcached
+sed -i 's|OPTIONS="-l 127.0.0.1,::1"|OPTIONS="-l 127.0.0.1,::1,"${PrimaryIP}"s,"|g' /etc/sysconfig/memcached
 systemctl enable memcached.service
 systemctl start memcached.service
 
 echo "[Starting Task 4.3: Setting up Etcd System]"
-sed -i 's|#ETCD_LISTEN_PEER_URLS="http://localhost:2380"|ETCD_LISTEN_PEER_URLS="http://${PrimaryIP}:2380"|g' /etc/etcd/etcd.conf
-sed -i 's|ETCD_LISTEN_CLIENT_URLS="http://localhost:2379"|ETCD_LISTEN_CLIENT_URLS="http://${PrimaryIP}:2379"|g' /etc/etcd/etcd.conf
+sed -i 's|#ETCD_LISTEN_PEER_URLS="http://localhost:2380"|ETCD_LISTEN_PEER_URLS="http://"${PrimaryIP}":2380"|g' /etc/etcd/etcd.conf
+sed -i 's|ETCD_LISTEN_CLIENT_URLS="http://localhost:2379"|ETCD_LISTEN_CLIENT_URLS="http://"${PrimaryIP}":2379"|g' /etc/etcd/etcd.conf
 sed -i 's|ETCD_NAME="default"|ETCD_NAME="openstack.kuybii.dev"|g' /etc/etcd/etcd.conf
-sed -i 's|#ETCD_INITIAL_ADVERTISE_PEER_URLS="http://localhost:2380"|ETCD_INITIAL_ADVERTISE_PEER_URLS="http://${PrimaryIP}:2380"|g' /etc/etcd/etcd.conf
-sed -i 's|ETCD_ADVERTISE_CLIENT_URLS="http://localhost:2379"|ETCD_ADVERTISE_CLIENT_URLS="http://${PrimaryIP}:2379"|g' /etc/etcd/etcd.conf
-sed -i 's|#ETCD_INITIAL_CLUSTER="default=http://localhost:2380"|ETCD_INITIAL_CLUSTER="openstack.kuybii.dev=http://${PrimaryIP}:2380"|g' /etc/etcd/etcd.conf
+sed -i 's|#ETCD_INITIAL_ADVERTISE_PEER_URLS="http://localhost:2380"|ETCD_INITIAL_ADVERTISE_PEER_URLS="http://"${PrimaryIP}":2380"|g' /etc/etcd/etcd.conf
+sed -i 's|ETCD_ADVERTISE_CLIENT_URLS="http://localhost:2379"|ETCD_ADVERTISE_CLIENT_URLS="http://"${PrimaryIP}":2379"|g' /etc/etcd/etcd.conf
+sed -i 's|#ETCD_INITIAL_CLUSTER="default=http://localhost:2380"|ETCD_INITIAL_CLUSTER="openstack.kuybii.dev=http://"${PrimaryIP}":2380"|g' /etc/etcd/etcd.conf
 sed -i 's|#ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster"|ETCD_INITIAL_CLUSTER_TOKEN="etcd-cluster-01"|g' /etc/etcd/etcd.conf
 sed -i 's|#ETCD_INITIAL_CLUSTER_STATE="new"|ETCD_INITIAL_CLUSTER_STATE="new"|g' /etc/etcd/etcd.conf
 systemctl enable etcd.service
 systemctl start etcd.service
 
 echo "[Starting Task 5: Setting up OpenStack Keystone and Provisioning Endpoints]"
-sed -i 's|#connection = <None>|connection = mysql+pymysql://keystone:jmFKDIV1oTZljiimkGvSDySwzcs4xD2FdurwJztWP7QYW94xyVMbAhNwEKZQGQhr@${PrimaryIP}/keystone|g' /etc/keystone/keystone.conf
+sed -i 's|#connection = <None>|connection = mysql+pymysql://keystone:jmFKDIV1oTZljiimkGvSDySwzcs4xD2FdurwJztWP7QYW94xyVMbAhNwEKZQGQhr@"${PrimaryIP}"/keystone|g' /etc/keystone/keystone.conf
 sed -i 's|#provider = fernet|provider = fernet|g' /etc/keystone/keystone.conf
 
 echo "...Populating Keystone Database..."
@@ -336,12 +335,12 @@ keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone
 keystone-manage credential_setup --keystone-user keystone --keystone-group keystone
 
 keystone-manage bootstrap --bootstrap-password ADMIN_PASS \
---bootstrap-admin-url http://${PrimaryIP}:5000/v3/ \
---bootstrap-internal-url http://${PrimaryIP}:5000/v3/ \
---bootstrap-public-url http://${PrimaryIP}:5000/v3/ \
+--bootstrap-admin-url http://"${PrimaryIP}":5000/v3/ \
+--bootstrap-internal-url http://"${PrimaryIP}":5000/v3/ \
+--bootstrap-public-url http://"${PrimaryIP}":5000/v3/ \
 --bootstrap-region-id Home
 
-sed -i 's|#ServerName www.example.com:80|ServerName ${PrimaryIP}|g' /etc/httpd/conf/httpd.conf
+sed -i 's|#ServerName www.example.com:80|ServerName "${PrimaryIP}"|g' /etc/httpd/conf/httpd.conf
 ln -s /usr/share/keystone/wsgi-keystone.conf /etc/httpd/conf.d/
 systemctl enable httpd.service
 systemctl start httpd.service
@@ -353,7 +352,7 @@ export OS_PASSWORD=TestSubjectE57
 export OS_PROJECT_NAME=admin
 export OS_USER_DOMAIN_NAME=Default
 export OS_PROJECT_DOMAIN_NAME=Default
-export OS_AUTH_URL=http://${PrimaryIP}:5000/v3
+export OS_AUTH_URL=http://"${PrimaryIP}":5000/v3
 export OS_IDENTITY_API_VERSION=3
 EOL
 . admin-Openrc
@@ -373,23 +372,23 @@ echo "[Starting Task 6: Setting up OpenStack Glance Imaging Service]"
 	set timeout 5
 	spawn openstack service create --name glance --description "Openstack Image" image
 	set timeout 5
-	spawn openstack endpoint create --region Home image public http://${PrimaryIP}:9292
+	spawn openstack endpoint create --region Home image public http://"${PrimaryIP}":9292
 	set timeout 5
-	spawn openstack endpoint create --region Home image internal http://${PrimaryIP}:9292
+	spawn openstack endpoint create --region Home image internal http://"${PrimaryIP}":9292
 	set timeout 5
-	spawn openstack endpoint create --region Home image admin http://${PrimaryIP}:9292
+	spawn openstack endpoint create --region Home image admin http://"${PrimaryIP}":9292
 	expect eof
 	")
-	#
-	#Execute Create Glance
-	#
-	echo "${CreateGlance}"
-sed -i 's|#connection = <None>|connection = mysql+pymysql://glance:0DCv0Y0JqNPwd0ZRsmmIP77Txt0a7BM3B402w0TQs68CqXEseeFvXqVVyVYPmtIU@${PrimaryIP}/glance|g' /etc/glance/glance-api.conf
+#
+#Execute Create Glance
+#
+echo "${CreateGlance}"
+sed -i 's|#connection = <None>|connection = mysql+pymysql://glance:0DCv0Y0JqNPwd0ZRsmmIP77Txt0a7BM3B402w0TQs68CqXEseeFvXqVVyVYPmtIU@"${PrimaryIP}"/glance|g' /etc/glance/glance-api.conf
 cat <<EOT >> /etc/glance/glance.conf
 [keystone_authtoken]
-www_authenticate_uri  = http://${PrimaryIP}:5000
-auth_url = http://${PrimaryIP}:5000
-memcached_servers = ${PrimaryIP}:11211
+www_authenticate_uri  = http://"${PrimaryIP}":5000
+auth_url = http://"${PrimaryIP}":5000
+memcached_servers = "${PrimaryIP}":11211
 auth_type = password
 project_domain_name = Default
 user_domain_name = Default
@@ -421,11 +420,11 @@ spawn openstack role add --project service --user placement admin
 set timeout 5
 spawn openstack service create --name placement --description "Placement API" placement
 set timeout 5
-spawn openstack endpoint create --region Home placement public http://${PrimaryIP}:8778
+spawn openstack endpoint create --region Home placement public http://"${PrimaryIP}":8778
 set timeout 5
-spawn openstack endpoint create --region Home placement internal http://${PrimaryIP}:8778
+spawn openstack endpoint create --region Home placement internal http://"${PrimaryIP}":8778
 set timeout 5
-spawn openstack endpoint create --region Home placemnt admin http://${PrimaryIP}:8778
+spawn openstack endpoint create --region Home placemnt admin http://"${PrimaryIP}":8778
 expect eof
 ")
 #
@@ -433,14 +432,14 @@ expect eof
 #
 
 echo "${CreatePlacement}"
-sed -i 's|#connection = <None>|connection = mysql+pymysql://placement:tTlFAXHcYSJmIdNhkwIez7W8cJcdErBty548VUhBqrdhaf3gKO4k7l01fny3bH3y@${PrimaryIP}/placement|g' /etc/placement/placement.conf
+sed -i 's|#connection = <None>|connection = mysql+pymysql://placement:tTlFAXHcYSJmIdNhkwIez7W8cJcdErBty548VUhBqrdhaf3gKO4k7l01fny3bH3y@"${PrimaryIP}"/placement|g' /etc/placement/placement.conf
 cat <<EOT >> /etc/placement/placement.conf
 [api]
 auth_strategy = keystone
 
 [keystone_authtoken]
-auth_url = http://${PrimaryIP}:5000/v3
-memcached_servers = ${PrimaryIP}:11211
+auth_url = http://"${PrimaryIP}":5000/v3
+memcached_servers = "${PrimaryIP}":11211
 auth_type = password
 project_domain_name = Default
 user_domain_name = Default
@@ -469,11 +468,11 @@ spawn openstack role add --project service --user nova admin
 set timeout 5
 spawn openstack service create 00name nova --description "OpenStack Compute" Compute
 set timeout 5
-spawn openstack endpoint create --region Home nova compute public http://${PrimaryIP}:8774/v2.1
+spawn openstack endpoint create --region Home nova compute public http://"${PrimaryIP}":8774/v2.1
 set timeout 5
-spawn openstack endpoint create --region Home nova compute internal http://${PrimaryIP}:8774/v2.1
+spawn openstack endpoint create --region Home nova compute internal http://"${PrimaryIP}":8774/v2.1
 set timeout 5
-spawn openstack endpoint create --region Home nova compute admin http://${PrimaryIP}:8774/v2.1
+spawn openstack endpoint create --region Home nova compute admin http://"${PrimaryIP}":8774/v2.1
 ")
 #
 #Execute Create Nova API
@@ -483,22 +482,22 @@ echo "${CreateNovaAPI}"
 cat <<EOT >> /etc/nova/nova.conf
 [DEFAULT]
 enabled_apiws = osapi_compute,metadata
-transport_url = rabbit://openstack:W40LFZa5ko6IiJ3KFHkAmLegBy8bY3O29xAvc0xpEQt2AbmlVYAce7m8DtRVQTh8@${PrimaryIP}:5672/
-my_ip = ${PrimaryIP}
+transport_url = rabbit://openstack:W40LFZa5ko6IiJ3KFHkAmLegBy8bY3O29xAvc0xpEQt2AbmlVYAce7m8DtRVQTh8@"${PrimaryIP}":5672/
+my_ip = ""${PrimaryIP}""
 
 [api_database]
-connection = mysql+pymysql://nova:UvSYhWaLBs8ty1TJ47PfpciX7KrGYOe28Tqz7pXKeAdMHCSU2TX3Ng1PSIEBraql@${PrimaryIP}/nova_api
+connection = mysql+pymysql://nova:UvSYhWaLBs8ty1TJ47PfpciX7KrGYOe28Tqz7pXKeAdMHCSU2TX3Ng1PSIEBraql@"${PrimaryIP}"/nova_api
 
 [database]
-connection = mysql+pymysql://nova:UvSYhWaLBs8ty1TJ47PfpciX7KrGYOe28Tqz7pXKeAdMHCSU2TX3Ng1PSIEBraql@${PrimaryIP}/nova
+connection = mysql+pymysql://nova:UvSYhWaLBs8ty1TJ47PfpciX7KrGYOe28Tqz7pXKeAdMHCSU2TX3Ng1PSIEBraql@"${PrimaryIP}"/nova
 
 [api]
 auth_strategy = keystone
 
 [keystone_authtoken]
-www_authenticate_uri = http://${PrimaryIP}:5000/
-auth_url = http://${PrimaryIP}:5000/
-memcached_servers = ${PrimaryIP}:11211
+www_authenticate_uri = http://"${PrimaryIP}":5000/
+auth_url = http://"${PrimaryIP}":5000/
+memcached_servers = "${PrimaryIP}":11211
 auth_type = password
 project_domain_name = Default
 user_domain_name = Default
@@ -508,11 +507,11 @@ password = ${NovaPassword}
 
 [vnc]
 enabled = True
-server_listen = ${PrimaryIP}
-server_proxyclient_address = ${PrimaryIP}
+server_listen = ""${PrimaryIP}""
+server_proxyclient_address = ""${PrimaryIP}""
 
 [glance]
-api_servers = http://${PrimaryIP}:9292
+api_servers = http://"${PrimaryIP}":9292
 
 [oslo_concurrency]
 lock_path = /var/lib/nova/tmp
@@ -526,7 +525,7 @@ project_domain_name = Default
 project_name = service
 auth_type = password
 user_domain_name = Default
-auth_url = http://${PrimaryIP}:5000/v3
+auth_url = http://"${PrimaryIP}":5000/v3
 username = placement
 password = 740EMvnrkkNmLGIi2KyR0WaRoM9ftbfnBuS9IGLewOdnFQktBxdhEzuFfvm6oEtD
 
@@ -534,7 +533,7 @@ password = 740EMvnrkkNmLGIi2KyR0WaRoM9ftbfnBuS9IGLewOdnFQktBxdhEzuFfvm6oEtD
 os_region_name = Home
 
 [neutron]
-auth_url = http://${PrimaryIP}:5000
+auth_url = http://"${PrimaryIP}":5000
 auth_type = password
 project_domain_name = default
 user_domain_name = default
@@ -581,11 +580,11 @@ spawn openstack role add --project service --user cinder admin
 set timeout 3
 spawn openstack service create --name cinderv3 --description "OpenStack Block Storage" volumev3
 set timeout 3
-spawn openstack endpoint create --region Home volumev3 public http://${PrimaryIP}:8776/v3/%\(project_id\)s
+spawn openstack endpoint create --region Home volumev3 public http://"${PrimaryIP}":8776/v3/%\(project_id\)s
 set timeout 3
-spawn openstack endpoint create --region Home volumev3 internal http://${PrimaryIP}:8776/v3/%\(project_id\)s
+spawn openstack endpoint create --region Home volumev3 internal http://"${PrimaryIP}":8776/v3/%\(project_id\)s
 set timeoput 3
-spawn openstack endpoint create --region Home volumev3 admin http://${PrimaryIP}:8776/v3/%\(project_id\)s
+spawn openstack endpoint create --region Home volumev3 admin http://"${PrimaryIP}":8776/v3/%\(project_id\)s
 ")
 
 #
@@ -594,19 +593,19 @@ spawn openstack endpoint create --region Home volumev3 admin http://${PrimaryIP}
 echo "${CreateCinderAPI}"
 cat <<EOT >> /etc/cinder/cinder.conf
 [DEFAULT]
-transport_url = rabbit://openstack:W40LFZa5ko6IiJ3KFHkAmLegBy8bY3O29xAvc0xpEQt2AbmlVYAce7m8DtRVQTh8@${PrimaryIP}:5672/
+transport_url = rabbit://openstack:W40LFZa5ko6IiJ3KFHkAmLegBy8bY3O29xAvc0xpEQt2AbmlVYAce7m8DtRVQTh8@"${PrimaryIP}":5672/
 auth_strategy = keystone
-my_ip = ${PrimaryIP}
+my_ip = ""${PrimaryIP}""
 enabled_backends = lvm1,lvm2
-glance_api_servers = http://${PrimaryIP}:9292
+glance_api_servers = http://"${PrimaryIP}":9292
 
 [database]
-connection = mysql+pymysql://cinder:aYdMWWoa4qyjrF9WmIRjo2ybiDEBcwbuPcghDWESMLHajpcJmRE517BXNpLi4wZ4@${PrimaryIP}/cinder
+connection = mysql+pymysql://cinder:aYdMWWoa4qyjrF9WmIRjo2ybiDEBcwbuPcghDWESMLHajpcJmRE517BXNpLi4wZ4@"${PrimaryIP}"/cinder
 
 [keystone_authtoken]
-www_authenticate_uri = http://${PrimaryIP}:5000
-auth_url = http://${PrimaryIP}:5000
-memcached_servers = ${PrimaryIP}:11211
+www_authenticate_uri = http://"${PrimaryIP}":5000
+auth_url = http://"${PrimaryIP}":5000
+memcached_servers = "${PrimaryIP}":11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
@@ -650,11 +649,11 @@ spawn openstack role add --project service --user neutron admin
 set timeout 3
 spawn openstack service create --name neutron --description "OpenStack Networking System" network
 set timeout 3
-spawn openstack endpoint create --region Home neutron public http://${PrimaryIP}:9696
+spawn openstack endpoint create --region Home neutron public http://"${PrimaryIP}":9696
 set timeout 3
-spawn openstack endpoint create --region Home neutron internal http://${PrimaryIP}:9696
+spawn openstack endpoint create --region Home neutron internal http://"${PrimaryIP}":9696
 set timeout 3
-spawn openstack endpoint create --region Home neutron admin http://${PrimaryIP}:9696
+spawn openstack endpoint create --region Home neutron admin http://"${PrimaryIP}":9696
 ")
 
 echo "${CreateNeutronAPI}"
@@ -663,15 +662,15 @@ cat <<EOT >> /etc/neutron/neutron.conf
 core_plugin = ml2
 service_plugins = ovn-router
 allow_overlapping_ips = true
-transport_url = rabbit://openstack:W40LFZa5ko6IiJ3KFHkAmLegBy8bY3O29xAvc0xpEQt2AbmlVYAce7m8DtRVQTh8@${PrimaryIP}
+transport_url = rabbit://openstack:W40LFZa5ko6IiJ3KFHkAmLegBy8bY3O29xAvc0xpEQt2AbmlVYAce7m8DtRVQTh8@"${PrimaryIP}"
 auth_strategy = keystone
 notify_nova_on_port_status_changes = true
 notify_nova_on_port_data_changes = true
 
 [keystone_authtoken]
-www_authenticate_uri = http://${PrimaryIP}:5000
-auth_url = http://${PrimaryIP}:5000
-memcached_servers = ${PrimaryIP}:11211
+www_authenticate_uri = http://"${PrimaryIP}":5000
+auth_url = http://"${PrimaryIP}":5000
+memcached_servers = "${PrimaryIP}":11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
@@ -681,7 +680,7 @@ password = x71ZmaKYFIbtdkImCvX23scjJ2uZ6dMAD90ESetesjzo1v39vLMmRFvP6AicOZvR
 
 [nova]
 # ...
-auth_url = http://${PrimaryIP}:5000
+auth_url = http://"${PrimaryIP}":5000
 auth_type = password
 project_domain_name = default
 user_domain_name = default
@@ -691,7 +690,7 @@ username = nova
 password = 39RIGUiolIvSvUjxhQGd59wT4HpyoQgHHjoZ4gqBJ3sR6qrU8144fnGxdm40Ibt6
 
 [database]
-connection = mysql+pymysql://neutron:VixEoW6BcpuRmmm7GYPYj0pwB1nvIsXtf8cqCsn7RiB9ehElWCzA5g60D4NEX0Jx@${PrimaryIP}/neutron
+connection = mysql+pymysql://neutron:VixEoW6BcpuRmmm7GYPYj0pwB1nvIsXtf8cqCsn7RiB9ehElWCzA5g60D4NEX0Jx@"${PrimaryIP}"/neutron
 
 [oslo_concurrency]
 lock_path = /var/lib/neutron/tmp
@@ -711,7 +710,7 @@ max_header_size = 38
 
 [ml2_type_vxlan]
 enable_vxlan = true
-local_ip = ${PrimaryIP}
+local_ip = ""${PrimaryIP}""
 l2_population = true
 
 [ml2_type_vlan]
@@ -722,14 +721,14 @@ enable_security_group = true
 enable_ipset = true
 
 [ovn]
-ovn_nb_connection = tcp:${PrimaryIP}:6641
-ovn_sb_connection = tcp:${PrimaryIP}:6642
+ovn_nb_connection = tcp:"${PrimaryIP}":6641
+ovn_sb_connection = tcp:"${PrimaryIP}":6642
 ovn_l3_scheduler = chance
 EOT
 
 cat <<EOT >> /etc/neutron/metadata_agent.ini
 [Default]
-nova_metadata_host = ${PrimaryIP}
+nova_metadata_host = ""${PrimaryIP}""
 metadata_proxy_shared_secret = ${MetadataSecret}
 EOT
 
